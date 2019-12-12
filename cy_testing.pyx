@@ -47,3 +47,4 @@ def find_triangle(int[:] degrees, int[:] neighbours):
     return "No triangles found"
 
 
+def find_cluster(): # TODO if a node doesn't move back in a single inf motion, then it can be removed from the loop

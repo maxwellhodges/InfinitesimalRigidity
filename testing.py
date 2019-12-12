@@ -96,7 +96,14 @@ if R.shape[0] > R.shape[1]:
 else:
     inf_motions = np.vstack((vt[singular_vals, :], vt[R.shape[0]:]))
 
-# loop over nodes, remove those that are floppy (nedges < 3) then find a triangle
+# remove those that are floppy (nedges < 3) then find a triangle
 # all nodes that move back to their original positions for all inf motions are part
 # of same cluster as triangle.  Remove all of these from list and find another triangle etc
+node_set = set(range(N))
+floppy_nodes, = np.where(degs < 2)
+node_set = node_list.difference(floppy_nodes.tolist())
 
+# want a cython function here that accepts inf motions of remaining nodes and returns those
+# nodes in a single cluster.  Will be a while loop
+
+rigid_nodes = cy_testing.find_cluster()
