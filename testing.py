@@ -35,7 +35,7 @@ for i, edge in enumerate(edge_list):
     R_triangle[i, [2 * node2, 2 * node2 + 1]] = (np.array(node1_coord) - np.array(node2_coord))
 
 
-# create array structures for cython code
+# create array structures for cython code TODO change this to return adjacency list
 def to_degree_array_and_neighbour_array(nnodes, edge_list):
 
     adjacency_list = [[] for node in range(nnodes)]
@@ -59,11 +59,11 @@ degs_test, neigh_test = to_degree_array_and_neighbour_array(4, test_edge_list)
 from importlib import reload
 import pyximport; pyximport.install(reload_support=True)
 
-from cy_testing import find_triangle
+import cy_testing
 triangle_nodes = find_triangle(degs.astype(np.int32), neighs.astype(np.int32))
 
 # construct rigidity matrix for triangle to get the rigid motions
-# wrap all this into a function
+# wrap all this into a function TODO think i can just use the motions from the whole structure later
 R_triangle = np.zeros((3, 6))
 R_triangle[0, 0:2] = toy_structure_coords[triangle_nodes[0]] - toy_structure_coords[triangle_nodes[1]]
 R_triangle[0, 2:4] = toy_structure_coords[triangle_nodes[1]] - toy_structure_coords[triangle_nodes[0]]
@@ -100,10 +100,31 @@ else:
 # all nodes that move back to their original positions for all inf motions are part
 # of same cluster as triangle.  Remove all of these from list and find another triangle etc
 node_set = set(range(N))
-floppy_nodes, = np.where(degs < 2)
-node_set = node_list.difference(floppy_nodes.tolist())
+floppy_nodes, = np.where(degs < 2) # TODO can just become python expression if using adjacency list
+node_set = node_set.difference(floppy_nodes.tolist())
+
+# original adjacency list - need to refactor all this to make adjacency list the main structure
+adjacency_list = [[] for node in range(N)]
+for edge in edge_list:
+    adjacency_list[edge[0]].append(edge[1])
+    adjacency_list[edge[1]].append(edge[0])
+
+# only want remaining nodes after pruning
+current_adjacency_list = [neigh for i, neigh in enumerate(adjacency_list) if i in node_set]
+current_deg_list = [deg for i, deg in enumerate(degs) if i in node_set]
+
+current_degree_array = np.array([len(neighs) for neighs in adjacency_list])
+current_neighbour_array = np.array([j for i in adjacency_list for j in i])
 
 # want a cython function here that accepts inf motions of remaining nodes and returns those
 # nodes in a single cluster.  Will be a while loop
+# note, this will return the indices of the *remaining* nodes so need to convert back
+triangle_nodes = cy_testing.find_triangle(current_degree_array.astype(np.int32),
+                                          current_neighbour_array.astype(np.int32))
+
+# get three rigid motions from inf motions for the triangle
+rand_rows = np.random.permutation(range(inf_motions.shape[0]))[:3]
+triangle_indices = [element for node in triangle_nodes for element in [2*node, 2*node+1]]
+rigid_triangle_motions = inf_motions[np.ix_(rand_rows, triangle_indices)]
 
 rigid_nodes = cy_testing.find_cluster()

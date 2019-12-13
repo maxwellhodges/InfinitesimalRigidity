@@ -12,7 +12,7 @@ cdef Pool mem = Pool()
 
 # @cython.boundscheck(False)
 # @cython.wraparound(False)
-def find_triangle(int[:] degrees, int[:] neighbours):
+def find_triangle(int[:] degrees, int[:] neighbours): # TODO allow different dtypes in code
 
     nnodes = len(degrees)
 
@@ -44,7 +44,11 @@ def find_triangle(int[:] degrees, int[:] neighbours):
                     if neighneighneigh_node == node:
                         return node, neigh_node, neighneigh_node
 
-    return "No triangles found"
+    return -1
+
+# TODO if a node doesn't move back in a single inf motion, then it can be removed from the loop
+# think i only need to do the SVD once and then can re-use rigid motions for triangles from that
+def find_cluster(double[:, :] rigidity_matrix):
 
 
-def find_cluster(): # TODO if a node doesn't move back in a single inf motion, then it can be removed from the loop
+
