@@ -1,3 +1,4 @@
+import pyximport; pyximport.install()
 import matplotlib.pyplot as plt
 import numpy as np
 import random
@@ -60,7 +61,7 @@ from importlib import reload
 import pyximport; pyximport.install(reload_support=True)
 
 import cy_testing
-triangle_nodes = find_triangle(degs.astype(np.int32), neighs.astype(np.int32))
+triangle_nodes = cy_testing.find_triangle(degs.astype(np.int32), neighs.astype(np.int32))
 
 # construct rigidity matrix for triangle to get the rigid motions
 # wrap all this into a function TODO think i can just use the motions from the whole structure later
@@ -124,7 +125,19 @@ triangle_nodes = cy_testing.find_triangle(current_degree_array.astype(np.int32),
 
 # get three rigid motions from inf motions for the triangle
 rand_rows = np.random.permutation(range(inf_motions.shape[0]))[:3]
-triangle_indices = [element for node in triangle_nodes for element in [2*node, 2*node+1]]
-rigid_triangle_motions = inf_motions[np.ix_(rand_rows, triangle_indices)]
+rigid_triangle_coords = toy_structure_coords[triangle_nodes, :]
 
-rigid_nodes = cy_testing.find_cluster()
+
+# try and keep as much as possible at the python level but maybe profile for speed
+rotation_vector = cy_testing.rotation_vector(np.array(triangle_nodes).astype(np.intc),
+                                             rigid_triangle_coords.astype(np.float),
+                                             toy_structure_coords.astype(np.float))
+
+# this will be the main function - having found a triangle, we want to return all nodes in that same cluster
+# slice out the nodes in the triangle?
+
+# TODO getting numberical errors here, need to decrease sensitivity
+rigid_nodes = cy_testing.find_cluster(np.array(triangle_nodes).astype(np.intc),
+                                      inf_motions[0], rotation_vector)
+
+
