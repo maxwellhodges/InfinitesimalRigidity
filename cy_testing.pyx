@@ -104,16 +104,18 @@ def find_cluster(int[:] triangle_nodes, double[:] inf_motion, double[:] rotation
     #     double rigid_y_motions = [0, 1/sqrt(3), 0, 1/sqrt(3), 0, 1/sqrt(3)]
 
     # get components of triangle rigid motion in each 'direction'
-    cdef double rigid_y_component, rigid_x_component, rigid_rot_component
+    cdef double rigid_y_component, rigid_x_component
+    multiple = np.zeros(6)
     rigid_x_component = (triangle_inf_motions[0] +
                          triangle_inf_motions[2] +
                          triangle_inf_motions[4])/3
     rigid_y_component = (triangle_inf_motions[1] +
                          triangle_inf_motions[3] +
                          triangle_inf_motions[5])/3
-    rigid_rot_component = 0.0
-    for i in range(6):
-        rigid_rot_component += triangle_inf_motions[i] * triangle_rot_motions[i]
+    # do it this way for now, try to use dot products so generalises to 3D afterwards
+    for i in range(3):
+        multiple[2*i] = (triangle_inf_motions[2*i] - rigid_x_component)/triangle_rot_motions[2*i]
+        multiple[2*i + 1] = (triangle_inf_motions[2*i + 1] - rigid_y_component)/triangle_rot_motions[2*i + 1]
 
     # TODO decide what to do about indices here to make it clear
     # set everything to 1, then change to 0 when atom found to be flexible
@@ -121,8 +123,8 @@ def find_cluster(int[:] triangle_nodes, double[:] inf_motion, double[:] rotation
     cdef double x, y
     x,y = 0.0, 0.0
     for i in range(N/2):
-        rigid_atoms[2*i] = inf_motion[2*i] - rigid_x_component - (rigid_rot_component * rotations[2*i])
-        rigid_atoms[2*i + 1] = inf_motion[2*i + 1] - rigid_y_component - (rigid_rot_component * rotations[2*i+1])
+        rigid_atoms[2*i] = inf_motion[2*i] - rigid_x_component - (multiple[0] * rotations[2*i])
+        rigid_atoms[2*i + 1] = inf_motion[2*i + 1] - rigid_y_component - (multiple[0] * rotations[2*i+1])
         # if sqrt(x*x + y*y) > 10e-6:
         #     rigid_atoms[i] = 0
 

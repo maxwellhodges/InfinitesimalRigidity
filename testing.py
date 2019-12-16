@@ -136,7 +136,6 @@ rotation_vector = cy_testing.rotation_vector(np.array(triangle_nodes).astype(np.
 # this will be the main function - having found a triangle, we want to return all nodes in that same cluster
 # slice out the nodes in the triangle?
 
-# TODO getting numberical errors here, need to decrease sensitivity
 rigid_nodes = cy_testing.find_cluster(np.array(triangle_nodes).astype(np.intc),
                                       inf_motions[0], rotation_vector)
 
