@@ -52,9 +52,9 @@ def to_degree_array_and_neighbour_array(nnodes, edge_list):
 
 degs, neighs = to_degree_array_and_neighbour_array(N, edge_list)
 
-test_edge_list = [(0, 1), (1, 2), (2, 3)]
-
-degs_test, neigh_test = to_degree_array_and_neighbour_array(4, test_edge_list)
+# test_edge_list = [(0, 1), (1, 2), (2, 3)]
+#
+# degs_test, neigh_test = to_degree_array_and_neighbour_array(4, test_edge_list)
 
 
 from importlib import reload
@@ -63,21 +63,6 @@ import pyximport; pyximport.install(reload_support=True)
 import cy_testing
 triangle_nodes = cy_testing.find_triangle(degs.astype(np.int32), neighs.astype(np.int32))
 
-# construct rigidity matrix for triangle to get the rigid motions
-# wrap all this into a function TODO think i can just use the motions from the whole structure later
-R_triangle = np.zeros((3, 6))
-R_triangle[0, 0:2] = toy_structure_coords[triangle_nodes[0]] - toy_structure_coords[triangle_nodes[1]]
-R_triangle[0, 2:4] = toy_structure_coords[triangle_nodes[1]] - toy_structure_coords[triangle_nodes[0]]
-
-R_triangle[1, 0:2] = toy_structure_coords[triangle_nodes[0]] - toy_structure_coords[triangle_nodes[2]]
-R_triangle[1, 4:] = toy_structure_coords[triangle_nodes[2]] - toy_structure_coords[triangle_nodes[0]]
-
-R_triangle[2, 2:4] = toy_structure_coords[triangle_nodes[1]] - toy_structure_coords[triangle_nodes[2]]
-R_triangle[2, 4:] = toy_structure_coords[triangle_nodes[2]] - toy_structure_coords[triangle_nodes[1]]
-
-# individual directions of nullspace are arbitrary, they are combinations of rigid translations and rotations
-u_tri, s_tri, vt_tri = np.linalg.svd(R_triangle)
-nullspace = vt_tri[3:, :]
 
 # create rigidity matrix for whole structure
 R = np.zeros((len(edge_list), 2 * N))
@@ -101,7 +86,7 @@ else:
 # all nodes that move back to their original positions for all inf motions are part
 # of same cluster as triangle.  Remove all of these from list and find another triangle etc
 node_set = set(range(N))
-floppy_nodes, = np.where(degs < 2) # TODO can just become python expression if using adjacency list
+floppy_nodes, = np.where(degs < 2)  # TODO can just become python expression if using adjacency list
 node_set = node_set.difference(floppy_nodes.tolist())
 
 # original adjacency list - need to refactor all this to make adjacency list the main structure
@@ -124,19 +109,49 @@ triangle_nodes = cy_testing.find_triangle(current_degree_array.astype(np.int32),
                                           current_neighbour_array.astype(np.int32))
 
 # get three rigid motions from inf motions for the triangle
-rand_rows = np.random.permutation(range(inf_motions.shape[0]))[:3]
 rigid_triangle_coords = toy_structure_coords[triangle_nodes, :]
 
+# try this just using numpy
+triangle_centre_of_mass = np.sum(rigid_triangle_coords, axis=0)/3
+distance_from_com = toy_structure_coords - triangle_centre_of_mass
+node_rotations = np.cross(distance_from_com, np.array([0, 0, 1]))[:, 0:2]
 
-# try and keep as much as possible at the python level but maybe profile for speed
-rotation_vector = cy_testing.rotation_vector(np.array(triangle_nodes).astype(np.intc),
-                                             rigid_triangle_coords.astype(np.float),
-                                             toy_structure_coords.astype(np.float))
+# need to normalise by triangle nodes
+triangle_rotations = node_rotations[np.array(triangle_nodes)]
+normalisation_factor = np.linalg.norm(triangle_rotations.flatten())
 
-# this will be the main function - having found a triangle, we want to return all nodes in that same cluster
-# slice out the nodes in the triangle?
+node_rotations_norm = node_rotations/normalisation_factor
+# only need to calulate these once - don't put them inside a loop
+node_translations_x_norm = np.tile([1/np.sqrt(3), 0], N)
+node_translations_y_norm = np.tile([0, 1/np.sqrt(3)], N)
 
-rigid_nodes = cy_testing.find_cluster(np.array(triangle_nodes).astype(np.intc),
-                                      inf_motions[0], rotation_vector)
+triangle_rotations_norm = triangle_rotations/normalisation_factor
+triangle_translation_x_norm = np.tile([1/np.sqrt(3), 0], 3)
+triangle_translation_y_norm = np.tile([0, 1/np.sqrt(3)], 3)
+
+"""This is the section we want to parallelise - should be able to use numpy broadcasting"""
+# for a single inf_motion, find the component in each rigid direction for the triangle
+# test_inf = inf_motions[0]
+# test_inf_triangle = test_inf.reshape(*toy_structure_coords.shape)[np.array(triangle_nodes)].flatten()
+
+triangle_node_indices = [j for i in triangle_nodes for j in (2*i, 2*i + 1)]
+inf_triangle_motions = inf_motions[:, triangle_node_indices]
+
+x_components = inf_triangle_motions.dot(triangle_translation_x_norm)  # TODO can vectorise this part too
+y_components = inf_triangle_motions.dot(triangle_translation_y_norm)
+rot_components = inf_triangle_motions.dot(triangle_rotations_norm.flatten())
+
+# make sure we get all zeros here
+test = inf_triangle_motions - ((x_components.reshape(5, 1) * triangle_translation_x_norm) +
+                               (y_components.reshape(5, 1) * triangle_translation_y_norm) +
+                               (rot_components.reshape(5, 1) * triangle_rotations_norm.flatten()))
+
+final_differences = inf_motions - ((x_components.reshape(5, 1) * node_translations_x_norm) +
+                                (y_components.reshape(5, 1) * node_translations_y_norm) +
+                                (rot_components.reshape(5, 1) * node_rotations_norm.flatten()))
+
+temp = final_differences.reshape(inf_motions.shape[0], *toy_structure_coords.shape)
+absolute_node_distances = np.linalg.norm(temp, axis=2)
+floppy_nodes_boolean = np.max(absolute_node_distances > 1e-5, axis=0)
 
 
