@@ -65,7 +65,7 @@ triangle_nodes = cy_testing.find_triangle(degs.astype(np.int32), neighs.astype(n
 
 
 # create rigidity matrix for whole structure
-R = np.zeros((len(edge_list), 2 * N))
+R1 = np.zeros((len(edge_list), 2 * N))
 for i, edge in enumerate(edge_list):
     node1, node2 = edge[0], edge[1]
     R[i, [2 * node1, 2 * node1+1]] = toy_structure_coords[node1] - toy_structure_coords[node2]
@@ -121,7 +121,6 @@ triangle_rotations = node_rotations[np.array(triangle_nodes)]
 normalisation_factor = np.linalg.norm(triangle_rotations.flatten())
 
 node_rotations_norm = node_rotations/normalisation_factor
-# only need to calulate these once - don't put them inside a loop
 node_translations_x_norm = np.tile([1/np.sqrt(3), 0], N)
 node_translations_y_norm = np.tile([0, 1/np.sqrt(3)], N)
 
@@ -155,3 +154,5 @@ absolute_node_distances = np.linalg.norm(temp, axis=2)
 floppy_nodes_boolean = np.max(absolute_node_distances > 1e-5, axis=0)
 
 
+degs = np.array([3,3,3,2]).astype(np.intc)
+neigh = np.array([3,5,6,4,6,7,4,5,7,5,6]).astype(np.intc)
