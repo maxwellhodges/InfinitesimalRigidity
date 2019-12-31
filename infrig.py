@@ -139,12 +139,15 @@ while current_node_list:
     # remove those nodes found to be rigid
     current_node_list = [node for node in current_node_list if node not in rigid_nodes]
     N_current = len(current_node_list)
-    current_adjacency_list = [neigh for i, neigh in enumerate(adjacency_list) if i in current_node_list]
+    current_adjacency_list = [list(set(neigh).intersection(set(current_node_list)))
+                              for i, neigh in enumerate(adjacency_list) if i in current_node_list]
 
     current_coords = np.array([coord for i, coord in enumerate(toy_structure_coords) if i in current_node_list])
 
     # remove motions corresponding to rigid nodes found in current loop
     inf_motions = inf_motions[:, np.repeat(~rigid_nodes_boolean, 2)]
+
+
 
 
 
