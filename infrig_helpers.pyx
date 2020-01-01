@@ -29,6 +29,7 @@ def find_triangle(int[:] degrees, int[:] neighbours):
     # np.random.seed(42)
     node_indices = np.random.permutation(range(nnodes))
 
+    #  TODO this code is completely wrong when node_id doesn't match array id...
     cdef:
         int node
         int neigh_node

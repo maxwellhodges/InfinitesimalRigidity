@@ -147,10 +147,3 @@ while current_node_list:
     # remove motions corresponding to rigid nodes found in current loop
     inf_motions = inf_motions[:, np.repeat(~rigid_nodes_boolean, 2)]
 
-
-
-
-
-
-
-
