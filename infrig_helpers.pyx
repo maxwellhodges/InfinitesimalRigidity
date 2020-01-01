@@ -1,6 +1,10 @@
+from libc.math cimport sqrt
+
 from cymem.cymem cimport Pool
 cimport cython
+
 import numpy as np
+
 
 ctypedef struct node_info:
     int degree
@@ -10,9 +14,7 @@ cdef Pool mem = Pool()
 
 # @cython.boundscheck(False)
 # @cython.wraparound(False)
-# TODO segfaulting when input includes neighbours that have been removed from node_list
-# TODO need to santise input
-def find_triangle(int[:] degrees, int[:] neighbours):
+def find_triangle(int[:] degrees, int[:] neighbours, int[:] current_nodes): # TODO allow different dtypes in code?
 
     nnodes = len(degrees)
 
@@ -29,19 +31,38 @@ def find_triangle(int[:] degrees, int[:] neighbours):
     # np.random.seed(42)
     node_indices = np.random.permutation(range(nnodes))
 
-    #  TODO this code is completely wrong when node_id doesn't match array id...
     cdef:
-        int node
-        int neigh_node
-        int neighneigh_node
-        int neighneighneigh_node
-    for node in node_indices:
-        for j in range(nodes[node].degree):
-            neigh_node = nodes[node].neighs[j]
-            for k in range(nodes[neigh_node].degree):
-                neighneigh_node = nodes[neigh_node].neighs[k]
-                for l in range(nodes[neighneigh_node].degree):
-                    neighneighneigh_node = nodes[neighneigh_node].neighs[l]
+        int node, neigh_node, neighneigh_node, neighneighneigh_node
+        int node_index, neigh_node_index, neighneigh_node_index
+
+    for node_index in node_indices:
+        node = current_nodes[node_index]
+        for j in range(nodes[node_index].degree):
+            neigh_node = nodes[node_index].neighs[j]
+            neigh_node_index = index_testing(current_nodes, neigh_node)
+
+            for k in range(nodes[neigh_node_index].degree):
+                neighneigh_node = nodes[neigh_node_index].neighs[k]
+                neighneigh_node_index = index_testing(current_nodes, neighneigh_node)
+
+                for l in range(nodes[neighneigh_node_index].degree):
+                    neighneighneigh_node = nodes[neighneigh_node_index].neighs[l]
                     if neighneighneigh_node == node:
-                        return node, neigh_node, neighneigh_node
+                        return node, neigh_node, \
+                               neighneigh_node
+
     return -1
+
+cdef int index_testing(int[:] current_node_list, int node):
+
+    cdef int i, length, index
+
+    length = len(current_node_list)
+
+    index = 0
+    for i in range(length):
+        if current_node_list[i] == node:
+            break
+        index += 1  # TODO need to return something if go over end of array
+
+    return index

@@ -2,6 +2,7 @@ import pyximport; pyximport.install()
 import numpy as np
 from infrig_helpers import find_triangle
 
+# TODO code won't currently work if node is part of multiple clusters
 
 def edge_list_to_adjacency_list(N, edge_list):
     adjacency_list = [[] for node in range(N)]
@@ -80,8 +81,9 @@ while current_node_list:
     # need this format as input into find_triangle function
     current_deg_array, current_neigh_array = to_degree_array_and_neighbour_array(current_adjacency_list)
 
-    # find_triangle returns indices based on the current_node_list, need to be converted back to node_ids
-    triangle_nodes = find_triangle(current_deg_array, current_neigh_array)
+    # TODO may have to change this logic now
+    triangle_nodes = find_triangle(current_deg_array, current_neigh_array,
+                                   np.array(current_node_list).astype(np.intc))
     if triangle_nodes == -1:
         floppy_nodes.extend(current_node_list)
         break
