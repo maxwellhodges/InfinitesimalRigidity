@@ -20,10 +20,10 @@ def to_degree_array_and_neighbour_array(adjacency_list):
     return degree_array.astype(np.intc), neighbour_array.astype(np.intc)
 
 
-def generate_rigidity_matrix(coords, edge_list, N):
+def generate_rigidity_matrix(coords, edge_list, N, node_mapping):
     R = np.zeros((len(edge_list), 2 * N))
     for i, edge in enumerate(edge_list):
-        node1, node2 = edge[0], edge[1]
+        node1, node2 = node_mapping[edge[0]], node_mapping[edge[1]]
         R[i, [2 * node1, 2 * node1 + 1]] = coords[node1] - coords[node2]
         R[i, [2 * node2, 2 * node2 + 1]] = coords[node2] - coords[node1]
 
@@ -39,7 +39,7 @@ def generate_inf_motions(rigidity_matrix, N_current):
         # scale the inf motions by the size of the network for numerical stability
         inf_motions = N_current * inf_motions
     else:  # TODO also scale this
-        inf_motions = np.vstack((vt[singular_vals, :], vt[rigidity_matrix.shape[0]:]))
+        inf_motions = N_current * np.vstack((vt[singular_vals, :], vt[rigidity_matrix.shape[0]:]))
 
     return inf_motions
 
@@ -59,22 +59,20 @@ def cluster_decomp(coords, edge_list):
     node_list = list(range(N))
 
     # prune any nodes that have fewer than 2 neighbours as cannot be part of rigid cluster
-    # TODO need to put this line back once pruning code is done
-    # TODO this actually breaks find_triangle if it's not there...
-    # floppy_nodes = list(node for node, neighs in enumerate(adjacency_list) if len(neighs) < 2)
-    floppy_nodes = []
+    floppy_nodes = list(node for node, neighs in enumerate(adjacency_list) if len(neighs) < 2)
     # current_node_list will keep track of total number of unassigned nodes.  Algorithms ends when it is empty.
     current_node_list = [node for node in node_list if node not in floppy_nodes]
     current_edge_list = [pair for pair in edge_list if all(node in current_node_list for node in pair)]
-
+    # need a mapping back to the actual node ids
     N_current = len(current_node_list)
+    node_mapping = dict(zip(current_node_list, range(N_current)))
+
     current_coords = np.array([coord for i, coord in enumerate(coords) if i in current_node_list])
     # only want remaining nodes after pruning
     current_adjacency_list = [neigh for i, neigh in enumerate(adjacency_list) if i in current_node_list]
 
-
-    # create rigidity matrix for structure TODO need to add logic to reindex after removing floppy nodes
-    R = generate_rigidity_matrix(current_coords, current_edge_list, N_current)
+    # create rigidity matrix for structure  TODO need to add logic to reindex after removing floppy nodes
+    R = generate_rigidity_matrix(current_coords, current_edge_list, N_current, node_mapping)
     # get the infinitesimal motions
     inf_motions = generate_inf_motions(R, N_current)
 
@@ -137,7 +135,7 @@ def cluster_decomp(coords, edge_list):
         temp = final_differences.reshape(inf_motions.shape[0], *current_coords.shape)
         absolute_node_distances = np.linalg.norm(temp, axis=2)
 
-        rigid_nodes_boolean = np.max(absolute_node_distances < 1e-5, axis=0)
+        rigid_nodes_boolean = np.min(absolute_node_distances < 1e-6, axis=0)
         rigid_indices = np.where(rigid_nodes_boolean == 1)[0]
         rigid_nodes = np.array(current_node_list)[rigid_indices]
 
@@ -149,6 +147,9 @@ def cluster_decomp(coords, edge_list):
         N_current = len(current_node_list)
         current_adjacency_list = [list(set(neigh).intersection(set(current_node_list)))
                                   for i, neigh in enumerate(adjacency_list) if i in current_node_list]
+
+        # TODO need to introduce list that retains all nodes with edges >= 4 as these could be in >1 cluster
+        # TODO additional, code currently breaks when this is not done as some nodes end up with no neighbours
 
         current_coords = np.array([coord for i, coord in enumerate(coords) if i in current_node_list])
 
