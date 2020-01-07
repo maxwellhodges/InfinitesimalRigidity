@@ -38,7 +38,7 @@ def generate_inf_motions(rigidity_matrix, N_current):
         inf_motions = vt[singular_vals, :]
         # scale the inf motions by the size of the network for numerical stability
         inf_motions = N_current * inf_motions
-    else:  # TODO also scale this
+    else:
         inf_motions = N_current * np.vstack((vt[singular_vals, :], vt[rigidity_matrix.shape[0]:]))
 
     return inf_motions
@@ -78,17 +78,19 @@ def cluster_decomp(coords, edge_list):
     R = generate_rigidity_matrix(current_coords, current_edge_list, N_current, node_mapping)
     # get the infinitesimal motions
     inf_motions = generate_inf_motions(R, N_current)
-
+    # have another reference to allow successive slicing
+    inf_motions_current = inf_motions
     """ The following section will go inside a while loop.  Need to consider that indices need to be matched back to 
     node ids after each iteration as nodes are removed from the node_list """
     cluster_dict = {}
     cluster_index = 0
+    triangles = []
     while current_node_list:
         # the current_node_list is the way to map back from list indices to the node value
 
         # need this format as input into find_triangle function
         current_deg_array, current_neigh_array = to_degree_array_and_neighbour_array(current_adjacency_list)
-
+        # TODO it's now possible to get stuck in an infinite loop by keeping the high degree nodes
         triangle_nodes = find_triangle(current_deg_array, current_neigh_array,
                                        np.array(current_node_list).astype(np.intc))
         if triangle_nodes == -1:
@@ -131,11 +133,11 @@ def cluster_decomp(coords, edge_list):
         #                                (y_components.reshape(5, 1) * triangle_translation_y_norm) +
         #                                (rot_components.reshape(5, 1) * triangle_rotations_norm))
 
-        final_differences = inf_motions - ((x_components.reshape(inf_motions.shape[0], 1) * node_translations_x_norm) +
-                                           (y_components.reshape(inf_motions.shape[0], 1) * node_translations_y_norm) +
-                                           (rot_components.reshape(inf_motions.shape[0], 1) * node_rotations_norm))
+        final_differences = inf_motions_current - ((x_components.reshape(inf_motions_current.shape[0], 1) * node_translations_x_norm) +
+                                           (y_components.reshape(inf_motions_current.shape[0], 1) * node_translations_y_norm) +
+                                           (rot_components.reshape(inf_motions_current.shape[0], 1) * node_rotations_norm))
 
-        temp = final_differences.reshape(inf_motions.shape[0], *current_coords.shape)
+        temp = final_differences.reshape(inf_motions_current.shape[0], *current_coords.shape)
         absolute_node_distances = np.linalg.norm(temp, axis=2)
 
         rigid_nodes_boolean = np.min(absolute_node_distances < 1e-6, axis=0)
@@ -149,6 +151,7 @@ def cluster_decomp(coords, edge_list):
         current_node_list = [node for node in current_node_list if node not in rigid_nodes
                                                                 or node in high_degree_nodes]
 
+
         N_current = len(current_node_list)
         current_adjacency_list = [list(set(neigh).intersection(set(current_node_list)))
                                   for i, neigh in enumerate(adjacency_list) if i in current_node_list]
@@ -160,6 +163,7 @@ def cluster_decomp(coords, edge_list):
 
         # remove motions corresponding to rigid nodes found in current loop
         # TODO this logic now needs to change to reflect keeping the high degree nodes in each loop above
-        inf_motions = inf_motions[:, np.repeat(~rigid_nodes_boolean, 2)]
+        current_node_indices = [j for i in current_node_list for j in (2 * node_mapping[i], 2 * node_mapping[i] + 1)]
+        inf_motions_current = inf_motions[:, current_node_indices]
 
     return cluster_dict  # TODO also return floppy nodes
