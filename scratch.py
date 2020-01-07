@@ -43,7 +43,7 @@ def subset_edges(edges, fraction_edges=0.5):
 
 
 # plot figure with subset edges present
-subset_of_edges = subset_edges(allowed_edges, 0.25)
+subset_of_edges = subset_edges(allowed_edges, 0.3)
 plot_lattice(x, y, subset_of_edges)
 
 import infrig

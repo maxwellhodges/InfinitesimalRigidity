@@ -59,9 +59,12 @@ def cluster_decomp(coords, edge_list):
     node_list = list(range(N))
 
     # prune any nodes that have fewer than 2 neighbours as cannot be part of rigid cluster
-    floppy_nodes = list(node for node, neighs in enumerate(adjacency_list) if len(neighs) < 2)
+    floppy_nodes = [node for node, neighs in enumerate(adjacency_list) if len(neighs) < 2]
     # current_node_list will keep track of total number of unassigned nodes.  Algorithms ends when it is empty.
     current_node_list = [node for node in node_list if node not in floppy_nodes]
+    # also want a list of those nodes with 4 or more edges as these could be involved in multiple clusters
+    high_degree_nodes = [node for node, neighs in enumerate(adjacency_list) if len(neighs) > 3]
+
     current_edge_list = [pair for pair in edge_list if all(node in current_node_list for node in pair)]
     # need a mapping back to the actual node ids
     N_current = len(current_node_list)
@@ -142,8 +145,10 @@ def cluster_decomp(coords, edge_list):
         cluster_dict[cluster_index] = rigid_nodes
         cluster_index += 1
 
-        # remove those nodes found to be rigid
-        current_node_list = [node for node in current_node_list if node not in rigid_nodes]
+        # remove those nodes found to be rigid  TODO logic isn't quite working
+        current_node_list = [node for node in current_node_list if node not in rigid_nodes
+                                                                or node in high_degree_nodes]
+
         N_current = len(current_node_list)
         current_adjacency_list = [list(set(neigh).intersection(set(current_node_list)))
                                   for i, neigh in enumerate(adjacency_list) if i in current_node_list]
@@ -154,6 +159,7 @@ def cluster_decomp(coords, edge_list):
         current_coords = np.array([coord for i, coord in enumerate(coords) if i in current_node_list])
 
         # remove motions corresponding to rigid nodes found in current loop
+        # TODO this logic now needs to change to reflect keeping the high degree nodes in each loop above
         inf_motions = inf_motions[:, np.repeat(~rigid_nodes_boolean, 2)]
 
     return cluster_dict  # TODO also return floppy nodes
