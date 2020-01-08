@@ -91,11 +91,20 @@ def cluster_decomp(coords, edge_list):
         # need this format as input into find_triangle function
         current_deg_array, current_neigh_array = to_degree_array_and_neighbour_array(current_adjacency_list)
         # TODO it's now possible to get stuck in an infinite loop by keeping the high degree nodes
-        triangle_nodes = find_triangle(current_deg_array, current_neigh_array,
-                                       np.array(current_node_list).astype(np.intc))
+        if triangles:
+            triangle_nodes = find_triangle(current_deg_array, current_neigh_array,
+                                           np.array(current_node_list).astype(np.intc),
+                                           np.array(triangles).astype(np.intc))
+        else:
+            triangle_nodes = find_triangle(current_deg_array, current_neigh_array,
+                                           np.array(current_node_list).astype(np.intc),
+                                           np.array([triangles]).astype(np.intc))
+
         if triangle_nodes == -1:
             floppy_nodes.extend(current_node_list)
             break
+
+        triangles.append(list(triangle_nodes))
 
         # convert triangle_nodes to current indices
         triangle_current_indices = [current_node_list.index(item) for item in triangle_nodes]
@@ -122,7 +131,7 @@ def cluster_decomp(coords, edge_list):
 
         # get indices as we have now flattened the motion vectors
         triangle_flattened_indices = [j for i in triangle_current_indices for j in (2*i, 2*i + 1)]
-        inf_triangle_motions = inf_motions[:, triangle_flattened_indices]
+        inf_triangle_motions = inf_motions_current[:, triangle_flattened_indices]
 
         # get the translation and rotation components for the nodes for each of the infinitesimal motions
         x_components = inf_triangle_motions.dot(triangle_translation_x_norm)  # TODO can vectorise this part too

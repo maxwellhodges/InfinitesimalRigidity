@@ -47,6 +47,7 @@ subset_of_edges = subset_edges(allowed_edges, 0.3)
 plot_lattice(x, y, subset_of_edges)
 
 import infrig
+# TODO need to update new_triangle code with test version that seems to work now
 out = infrig.cluster_decomp(points, subset_of_edges)
 
 colors=["#008000", "#FF0000", "#0000FF", "#FFBD33"]

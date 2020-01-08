@@ -156,3 +156,12 @@ floppy_nodes_boolean = np.max(absolute_node_distances > 1e-5, axis=0)
 
 degs = np.array([3,3,3,2]).astype(np.intc)
 neigh = np.array([3,5,6,4,6,7,4,5,7,5,6]).astype(np.intc)
+
+
+import pyximport; pyximport.install()
+import numpy as np
+
+triangles = np.array([[3,2,1],[4,6,5],[7,9,8]]).astype(np.intc)
+triangle = np.array([8,7,9]).astype((np.intc))
+from cy_testing import new_triangle
+triangle2 = np.array([10,12,11]).astype((np.intc))
