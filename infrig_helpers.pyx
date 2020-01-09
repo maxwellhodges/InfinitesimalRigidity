@@ -75,7 +75,7 @@ cdef int index_testing(int[:] current_node_list, int node):
     return index
 
 
-cdef int new_triangle(int* triangle, int[:,:] triangle_list):
+cdef int new_triangle(int[:] triangle, int[:,:] triangle_list):
     """Returns true if triangle has not already been identified"""
     cdef:
         int rows = triangle_list.shape[0]
@@ -84,13 +84,20 @@ cdef int new_triangle(int* triangle, int[:,:] triangle_list):
     # sort the triangle nodes
     qsort(&triangle[0], 3, sizeof(int), &cmp_func)
 
+    # make element of matches 1 if rows doesn't match
+    cdef int* matches = <int*>mem.alloc(rows, sizeof(int))
     for i in range(rows):
         qsort(&triangle_list[i, 0], triangle_list[i].shape[0], triangle_list[i].strides[0], &cmp_func)
         for j in range(3):
             if triangle_list[i, j] != triangle[j]:
-                return 1
+                matches[i] = 1
 
-    return 0
+    for i in range(rows):
+        if matches[i] == 0:
+            return 0
+
+    return 1
+
 
 
 
