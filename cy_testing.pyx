@@ -69,13 +69,26 @@ cdef int index_testing(int[:] current_node_list, int node):
     return index
 
 
-def test(int[:, :] triangle_list):
+def test(int[:] rigid_nodes, int[:] triangle):
+    """ Returns 1 if triangle is not in rigid_nodes and 0 otherwise"""
+    # rigid_nodes will be presorted
     cdef:
-        int rows = triangle_list.shape[0]
+        int nnodes = rigid_nodes.shape[0]
         int i, j
 
-    for i in range(rows):
-        qsort(&triangle_list[i, 0], triangle_list[i].shape[0], triangle_list[i].strides[0], &cmp_func)
+    cdef int* tri_matches = <int*>mem.alloc(3, sizeof(int))
+    qsort(&triangle[0], triangle.shape[0], triangle.strides[0], &cmp_func)
+    j = 0
+    for i in range(nnodes):
+        if rigid_nodes[i] == triangle[j]:
+            tri_matches[j] = 1
+            j += 1
+
+    for i in range(3):
+        if tri_matches[i] == 0:
+            return 1
+
+    return 0
 
 
 

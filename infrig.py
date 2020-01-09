@@ -84,6 +84,7 @@ def cluster_decomp(coords, edge_list):
     node ids after each iteration as nodes are removed from the node_list """
     cluster_dict = {}
     cluster_index = 0
+    total_rigid_nodes = []
     triangles = []
     while current_node_list:
         # the current_node_list is the way to map back from list indices to the node value
@@ -91,14 +92,17 @@ def cluster_decomp(coords, edge_list):
         # need this format as input into find_triangle function
         current_deg_array, current_neigh_array = to_degree_array_and_neighbour_array(current_adjacency_list)
         # TODO it's now possible to get stuck in an infinite loop by keeping the high degree nodes
+        total_rigid_nodes.sort()
         if triangles:
             triangle_nodes = find_triangle(current_deg_array, current_neigh_array,
                                            np.array(current_node_list).astype(np.intc),
-                                           np.array(triangles).astype(np.intc))
+                                           np.array(triangles).astype(np.intc),
+                                           np.array(total_rigid_nodes).astype(np.intc))
         else:
             triangle_nodes = find_triangle(current_deg_array, current_neigh_array,
                                            np.array(current_node_list).astype(np.intc),
-                                           np.array([triangles]).astype(np.intc))
+                                           np.array([triangles]).astype(np.intc),
+                                           np.array(total_rigid_nodes).astype(np.intc))
 
         if triangle_nodes == -1:
             floppy_nodes.extend(current_node_list)
@@ -151,12 +155,14 @@ def cluster_decomp(coords, edge_list):
 
         rigid_nodes_boolean = np.min(absolute_node_distances < 1e-6, axis=0)
         rigid_indices = np.where(rigid_nodes_boolean == 1)[0]
-        rigid_nodes = np.array(current_node_list)[rigid_indices]
+        # rigid_nodes = np.array(current_node_list)[rigid_indices]
+        rigid_nodes = [current_node_list[i] for i in rigid_indices]
 
         cluster_dict[cluster_index] = rigid_nodes
+        total_rigid_nodes.extend(rigid_nodes)
         cluster_index += 1
 
-        # remove those nodes found to be rigid  TODO logic isn't quite working
+        # remove those nodes found to be rigid
         current_node_list = [node for node in current_node_list if node not in rigid_nodes
                                                                 or node in high_degree_nodes]
 
@@ -165,13 +171,10 @@ def cluster_decomp(coords, edge_list):
         current_adjacency_list = [list(set(neigh).intersection(set(current_node_list)))
                                   for i, neigh in enumerate(adjacency_list) if i in current_node_list]
 
-        # TODO need to introduce list that retains all nodes with edges >= 4 as these could be in >1 cluster
-        # TODO additional, code currently breaks when this is not done as some nodes end up with no neighbours
 
         current_coords = np.array([coord for i, coord in enumerate(coords) if i in current_node_list])
 
         # remove motions corresponding to rigid nodes found in current loop
-        # TODO this logic now needs to change to reflect keeping the high degree nodes in each loop above
         current_node_indices = [j for i in current_node_list for j in (2 * node_mapping[i], 2 * node_mapping[i] + 1)]
         inf_motions_current = inf_motions[:, current_node_indices]
 

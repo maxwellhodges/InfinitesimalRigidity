@@ -15,7 +15,8 @@ cdef Pool mem = Pool()
 
 # @cython.boundscheck(False)
 # @cython.wraparound(False)
-def find_triangle(int[:] degrees, int[:] neighbours, int[:] current_nodes, int[:,:] triangle_list):
+def find_triangle(int[:] degrees, int[:] neighbours, int[:] current_nodes,
+                  int[:,:] triangle_list, int[:] rigid_nodes):
 
     nnodes = len(degrees)
 
@@ -53,7 +54,7 @@ def find_triangle(int[:] degrees, int[:] neighbours, int[:] current_nodes, int[:
                         triangle[:] = [node, neigh_node, neighneigh_node]
                         if triangle_list.shape[1] == 0:
                             return node, neigh_node, neighneigh_node
-                        elif new_triangle(triangle, triangle_list) == 1:
+                        elif new_triangle(triangle, triangle_list) == 1 and not_in_rigid_nodes(triangle, rigid_nodes) == 1:
                             return node, neigh_node, neighneigh_node
                         else:
                             continue
@@ -98,6 +99,27 @@ cdef int new_triangle(int[:] triangle, int[:,:] triangle_list):
 
     return 1
 
+cdef int not_in_rigid_nodes(int* triangle, int[:] rigid_nodes):
+    """ Returns 1 if triangle is not in rigid_nodes and 0 otherwise"""
+    # rigid_nodes will be presorted
+    cdef:
+        int nnodes = rigid_nodes.shape[0]
+        int i, j
+
+    cdef int* tri_matches = <int*>mem.alloc(3, sizeof(int))
+    # sort triangle nodes
+    qsort(&triangle[0], 3, sizeof(int), &cmp_func)
+    j = 0
+    for i in range(nnodes):
+        if rigid_nodes[i] == triangle[j]:
+            tri_matches[j] = 1
+            j += 1
+
+    for i in range(3):
+        if tri_matches[i] == 0:
+            return 1
+
+    return 0
 
 
 

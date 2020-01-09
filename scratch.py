@@ -43,7 +43,7 @@ def subset_edges(edges, fraction_edges=0.5):
 
 
 # plot figure with subset edges present
-subset_of_edges = subset_edges(allowed_edges, 0.6)
+subset_of_edges = subset_edges(allowed_edges, 0.3)
 plot_lattice(x, y, subset_of_edges)
 
 import infrig
@@ -52,14 +52,6 @@ import infrig
 out = infrig.cluster_decomp(points, subset_of_edges)
 
 # test code
-out = {0: np.array([18, 24, 25, 30]),
-       1: np.array([ 3,  9, 10]),
-       2: np.array([ 0,  1,  2,  6,  7,  8,  9, 12, 13, 14, 15, 16, 20]),
-       3: np.array([21, 22, 26, 27]),
-       4: np.array([11, 16, 22, 23])}
-
-out = {0: np.array([0,1,2, 3,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 20, 22, 23, 24, 25,
-        26, 27, 28])}
 
 colors=["#008000", "#FF0000", "#0000FF", "#FFBD33", "#8DC1B0"]
 
