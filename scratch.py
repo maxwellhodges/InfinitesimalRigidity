@@ -35,7 +35,7 @@ def plot_lattice(x, y, allowed_edges=None):
 # take random subsets of the allowed edges
 def subset_edges(edges, fraction_edges=0.5):
     num_allowed_edges = len(edges)
-    np.random.seed(42)
+    # np.random.seed(42)
     num_subset_edges = int(fraction_edges * num_allowed_edges)
     subset_indices = np.random.permutation(num_allowed_edges)[:num_subset_edges]
     subset_edges = [allowed_edges[i] for i in subset_indices]
@@ -43,12 +43,10 @@ def subset_edges(edges, fraction_edges=0.5):
 
 
 # plot figure with subset edges present
-subset_of_edges = subset_edges(allowed_edges, 0.3)
+subset_of_edges = subset_edges(allowed_edges, 0.2)
 plot_lattice(x, y, subset_of_edges)
 
 import infrig
-# TODO new bug - seem to return some clusters multiple times due to code that alows for nodes
-# TODO be in multiple communites
 out = infrig.cluster_decomp(points, subset_of_edges)
 
 # test code

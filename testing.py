@@ -165,3 +165,10 @@ rigid_nodes = np.array([3,2,1,4,6,5,7,9,8]).astype(np.intc)
 rigid_nodes.sort()
 triangle = np.array([3,1,9]).astype((np.intc))
 from cy_testing import test
+
+degs = np.array([2, 2, 5, 2, 3, 3, 2], dtype=np.intc)
+neighs = np.array([ 2, 14,  8, 14, 20,  7,  9, 15, 21, 14, 21, 14, 27, 13, 22, 15, 14, 24, 31], dtype=np.intc)
+current_nodes = [7, 9, 14, 15, 20, 21, 25]
+
+from cy_testing import find_triangle
+out = find_triangle(degs, neighs, np.array(current_nodes, dtype=np.intc))

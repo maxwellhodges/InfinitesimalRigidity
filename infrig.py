@@ -72,7 +72,10 @@ def cluster_decomp(coords, edge_list):
 
     current_coords = np.array([coord for i, coord in enumerate(coords) if i in current_node_list])
     # only want remaining nodes after pruning
-    current_adjacency_list = [neigh for i, neigh in enumerate(adjacency_list) if i in current_node_list]
+    # TODO think the issue might be here - not pruning the neighs on the first loop
+    # current_adjacency_list = [neigh for i, neigh in enumerate(adjacency_list) if i in current_node_list]
+    current_adjacency_list = [list(set(neigh).intersection(set(current_node_list)))
+                              for i, neigh in enumerate(adjacency_list) if i in current_node_list]
 
     # create rigidity matrix for structure  TODO need to add logic to reindex after removing floppy nodes
     R = generate_rigidity_matrix(current_coords, current_edge_list, N_current, node_mapping)
@@ -91,7 +94,8 @@ def cluster_decomp(coords, edge_list):
 
         # need this format as input into find_triangle function
         current_deg_array, current_neigh_array = to_degree_array_and_neighbour_array(current_adjacency_list)
-        # TODO it's now possible to get stuck in an infinite loop by keeping the high degree nodes
+        # TODO seem to be returning triangle even when there are none
+        #   getting nodes in neighs that are not in cuurent_node_list
         total_rigid_nodes.sort()
         if triangles:
             triangle_nodes = find_triangle(current_deg_array, current_neigh_array,
